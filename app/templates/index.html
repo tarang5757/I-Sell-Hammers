@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <title>I Sell Hammers</title>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h1>Welcome to I Sell Hammers</h1>
+        <!-- Form to add a new hammer -->
+        <h2>Add a New Hammer</h2>
+        <form id="addHammerForm">
+            <div class="form-group">
+                <label for="hammerType">Hammer Type</label>
+                <input type="text" class="form-control" id="hammerType" required>
+            </div>
+            <div class="form-group">
+                <label for="hammerPrice">Price</label>
+                <input type="number" class="form-control" id="hammerPrice" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Hammer</button>
+        </form>
+
+        <hr>
+
+        <!-- Table to display hammers -->
+        <h2>Available Hammers</h2>
+        <table class="table" id="hammersTable">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Sold</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Hammers will be added here by JavaScript -->
+            </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Display total cost of sold hammers -->
+        <h3>Total Sales: $<span id="totalSales">0.00</span></h3>
+
+    </div>
+
+    <!-- JavaScript for the page's interactivity -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="../static/index.js">
+    </script>
+</body>
+
+</html>
