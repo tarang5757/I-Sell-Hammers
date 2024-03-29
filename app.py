@@ -46,10 +46,8 @@ def home():
 
 @app.route('/hammers/<int:id>/sell', methods=['POST'])
 def sell_hammer(id):
-    # Fixed: Added missing parentheses to call getDbConnection
     connection = getDbConnection()
     cursor = connection.cursor()
-    # Fixed: Corrected the execute method's parameters for the UPDATE statement.
     cursor.execute('UPDATE hammers SET sold = 1 WHERE id=?', (id,))
     connection.commit()
     connection.close()
@@ -61,11 +59,9 @@ def list_hammers():
     cursor = connection.cursor()
     hammers = cursor.execute("SELECT * FROM hammers").fetchall()
     connection.close()
-    # Corrected variable name from 'hammer' to 'hammers' in list comprehension.
     hammer_list = [{'id': hammer['id'], 'type': hammer['type'], 'price': hammer['price'], 'sold': hammer['sold']} for hammer in hammers]
     return jsonify(hammers=hammer_list)
 
 if __name__ == '__main__':
-    # Ensures the table is created before running the app.
     create_table()
     app.run(debug=True)
