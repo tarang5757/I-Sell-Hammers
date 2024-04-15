@@ -106,6 +106,14 @@ function loadHammers() {
             buybackButton.onclick = () => buyHammer(hammer.id);
             buybackButton.disabled = !hammer.sold;
             actionCell.appendChild(buybackButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.innerText = "delete"
+            deleteButton.className = 'btn btn-warning'
+            deleteButton.onclick = () => deleteHammer(hammer.id);
+            deleteButton.disabled = hammer.sold;
+            actionCell.appendChild(deleteButton);
+
         });
 
         // Calculate and display total sales
@@ -116,6 +124,23 @@ function loadHammers() {
         console.error('Error:', error);
     });
 }
+
+
+function deleteHammer(id) {
+    fetch('/hammers/' + id + "/delete", { method: 'DELETE' })
+        .then(response => {
+            if (response.ok) {
+                console.log('Success: Product deleted successfully');
+                loadHammers();
+            } else {
+                console.error('Failed to delete product');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
 
 
 

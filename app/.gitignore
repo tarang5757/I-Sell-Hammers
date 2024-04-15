@@ -1,6 +1,3 @@
 hammers.db
 __pycache__
 venv
-../_pycache
-../.vs
-..instance

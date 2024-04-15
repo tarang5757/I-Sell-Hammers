@@ -3,6 +3,7 @@ from . import app, db
 from .models import Hammer, Buyback
 
 
+# default endpoint
 @app.route("/")
 def home():
     return render_template("index.html")  # Assuming you have an index.html template
@@ -32,6 +33,7 @@ def sell_hammer(id):
     return jsonify({"success": True}), 200
 
 
+# This methods will buyback the hammer at 0.75x the initial cost
 @app.route("/hammers/<int:id>/buy", methods=["POST"])
 def buy_it_back(id):
     hammer = Hammer.query.get_or_404(id)
@@ -48,6 +50,7 @@ def buy_it_back(id):
         return jsonify({"error": "Hammer not sold, cannot buy back"}), 400
 
 
+# this methods will list all the hammers from the database
 @app.route("/hammers", methods=["GET"])
 def list_hammers():
     hammers = Hammer.query.all()
@@ -63,6 +66,7 @@ def list_hammers():
     return jsonify(hammers=hammer_list)
 
 
+# this will list all tha buybacks from the database
 @app.route("/buybacks", methods=["GET"])
 def list_buybacks():
     buybacks = Buyback.query.all()
@@ -76,6 +80,23 @@ def list_buybacks():
         for buyback in buybacks
     ]
     return jsonify(buybacks=buyback_list)
+
+
+@app.route("/hammers/<int:id>/delete", methods=["DELETE"])
+def delete_hammer(id):
+
+    hammer = Hammer.query.get_or_404(id)
+
+    if hammer:
+        buyback_entry = Buyback.query.filter_by(hammer_id=id).first()
+        if buyback_entry:
+            db.session.delete(buyback_entry)
+
+        db.session.delete(hammer)
+        db.session.commit()
+        return jsonify({"message": f"product with ID {id} deleted successfully"}), 200
+    else:
+        return jsonify({"message", f"Product with ID {id} was not deleted"}), 404
 
 
 @app.errorhandler(500)
