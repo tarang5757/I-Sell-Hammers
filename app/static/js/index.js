@@ -1,112 +1,152 @@
-document.addEventListener("DOMContentLoaded", function () {
-    // Add event listener for the form submission event
-    document.getElementById('addHammerForm').addEventListener('submit', function (e) {
-        // Prevent the default form submission behavior
+// Utility Functions
+function sellHammer(id) {
+    fetch('/hammers/' + id + '/sell', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            loadHammers();
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+}
+
+function buyHammer(id) {
+    fetch('/hammers/' + id + '/buy', { method: "POST" })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Buyback Success: ", data);
+            loadHammers();
+
+
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+}
+
+// Utility Functions
+function list_buybacks(hammerId) {
+    fetch('/buybacks')
+        .then(response => response.json())
+        .then(data => {
+            const buybacks = data.buybacks;
+            const filteredBuybacks = buybacks.filter(buyback => buyback.hammer_id === hammerId);
+            // Assuming you have a way to display these filtered buybacks. For simplicity, logging them:
+            console.log('Buybacks for hammer ' + hammerId + ':', filteredBuybacks);
+            // Here you could update the UI to display these buybacks, perhaps in a modal or a dedicated section next to the hammer.
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+}
+
+
+
+function calculateTotalSales(hammers, buybacks) {
+    let totalSales = 0;
+
+    // Add to total sales for each hammer that has ever been sold
+    hammers.forEach(hammer => {
+        // Assume that the hammer was ever sold if it's not currently sold but there is a buyback record
+        const wasEverSold = hammer.sold || buybacks.some(buyback => buyback.hammer_id === hammer.id);
+        if (wasEverSold) {
+            totalSales += parseFloat(hammer.price);
+        }
+    });
+
+    // Deduct from total sales for each unique buyback
+    let processedBuybacks = new Set();
+    buybacks.forEach(buyback => {
+        if (!processedBuybacks.has(buyback.hammer_id)) {
+            totalSales -= parseFloat(buyback.buyback_price);
+            processedBuybacks.add(buyback.hammer_id);
+        }
+    });
+
+    return totalSales;
+}
+
+function loadHammers() {
+    Promise.all([
+        fetch('/hammers').then(response => response.json()),
+        fetch('/buybacks').then(response => response.json())
+    ]).then(([hammersData, buybacksData]) => {
+        const hammers = hammersData.hammers;
+        const buybacks = buybacksData.buybacks;
+        const tableBody = document.getElementById('hammersTable').getElementsByTagName('tbody')[0];
+
+        // Clear the table before repopulating it
+        tableBody.innerHTML = '';
+
+        // Update wasSold status based on buybacks
+        hammers.forEach(hammer => {
+            hammer.wasSold = hammer.sold || buybacks.some(buyback => buyback.hammer_id === hammer.id);
+        });
+
+        // Populate the table with hammers
+        hammers.forEach(hammer => {
+            const row = tableBody.insertRow();
+            row.insertCell(0).innerText = hammer.id;
+            row.insertCell(1).innerText = hammer.type;
+            row.insertCell(2).innerText = hammer.price;
+            row.insertCell(3).innerText = hammer.sold ? 'Yes' : 'No';
+
+            const actionCell = row.insertCell(4);
+            const sellButton = document.createElement('button');
+            sellButton.innerText = 'Sell';
+            sellButton.className = 'btn btn-success';
+            sellButton.onclick = () => sellHammer(hammer.id);
+            sellButton.disabled = hammer.sold;
+            actionCell.appendChild(sellButton);
+
+            const buybackButton = document.createElement('button');
+            buybackButton.innerText = 'Buy It Back';
+            buybackButton.className = 'btn btn-primary';
+            buybackButton.onclick = () => buyHammer(hammer.id);
+            buybackButton.disabled = !hammer.sold;
+            actionCell.appendChild(buybackButton);
+        });
+
+        // Calculate and display total sales
+        const totalSales = calculateTotalSales(hammers, buybacks);
+        document.getElementById('totalSales').innerText = `${totalSales.toFixed(2)}`;
+
+    }).catch((error) => {
+        console.error('Error:', error);
+    });
+}
+
+
+
+// Initializes form submission event and loads hammers
+function initApplication() {
+    // Setup form submission handler
+    document.getElementById('addHammerForm').addEventListener('submit', (e) => {
         e.preventDefault();
 
-        // Get the value of the hammer type input
-        var hammerType = document.getElementById('hammerType').value;
-        // Get the value of the hammer price input
-        var hammerPrice = document.getElementById('hammerPrice').value;
+        const hammerType = document.getElementById('hammerType').value;
+        const hammerPrice = document.getElementById('hammerPrice').value;
 
-        // Using the fetch api to send a post request to add a new hammer
         fetch('/hammers', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            // Convert the form values to a JSON string
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type: hammerType, price: hammerPrice }),
         })
-            // Parse the JSON response
             .then(response => response.json())
-            // Handle the response data
             .then(data => {
                 console.log('Success:', data);
-                // Refresh the hammers list
                 loadHammers();
-                // Reset the form inputs
                 document.getElementById('addHammerForm').reset();
             })
-            // Catch and log any errors
             .catch((error) => {
                 console.error('Error:', error);
             });
     });
 
-    // function to mark a hammer as sold
-    function sellHammer(id) {
-        // Send a post request to the sell hammer endpoint
-        fetch('/hammers/' + id + '/sell', {
-            method: 'POST'
-        })
-            // parse the JSON response
-            .then(response => response.json())
-            // handle the response
-            .then(data => {
-                console.log('Success:', data);
-                // refresh the hammers list
-                loadHammers();
-            })
-            // Catch and log any errors
-            .catch((error) => {
-                console.error('Error:', error);
-            });
-    }
-
-    // function to load hammers from the database and update the display
-    function loadHammers() {
-        // Send a GET request to retrieve the list of hammers
-        fetch('/hammers')
-            // Parse the JSON response
-            .then(response => response.json())
-            // Handle the hammers data
-            .then(data => {
-                var hammers = data.hammers;
-                // Get the table body element where the hammers will be listed
-                var tableBody = document.getElementById('hammersTable').getElementsByTagName('tbody')[0];
-                // Clear the current list of hammers
-                tableBody.innerHTML = '';
-                // Initialize total sales counter
-                var totalSales = 0;
-
-                // loop over each hammer and create a table row for each one
-                hammers.forEach(function (hammer) {
-                    var row = tableBody.insertRow();
-                    // insert cells for hammer id, type, price, and sold status
-                    row.insertCell(0).innerText = hammer.id;
-                    row.insertCell(1).innerText = hammer.type;
-                    row.insertCell(2).innerText = hammer.price;
-                    row.insertCell(3).innerText = hammer.sold ? 'Yes' : 'No';
-
-                    // create a sell button for each hammer
-                    var sellButton = document.createElement('button');
-                    sellButton.innerText = 'Sell';
-                    sellButton.className = 'btn btn-success';
-                    // attach an event listener to the sell button
-                    sellButton.onclick = function () { sellHammer(hammer.id); };
-                    // Disable the button if the hammer is already sold
-                    sellButton.disabled = hammer.sold;
-
-                    // Append the sell button to the last cell
-                    var actionCell = row.insertCell(4);
-                    actionCell.appendChild(sellButton);
-
-                    // Add to total sales if the hammer is sold
-                    if (hammer.sold) {
-                        totalSales += parseFloat(hammer.price);
-                    }
-                });
-
-                // update the total sales display with the new total
-                document.getElementById('totalSales').innerText = totalSales.toFixed(2);
-            })
-            // catch and log any errors
-            .catch((error) => {
-                console.error('Error:', error);
-            });
-    }
-
-    // initial call to load hammers and display them
     loadHammers();
-});
+}
+
+// Execute the initialization function when the window is fully loaded
+// This ensures that the DOM is fully loaded before attaching event listeners and executing initial functions.
+window.onload = initApplication;

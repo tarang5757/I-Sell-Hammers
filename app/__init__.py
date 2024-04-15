@@ -1,13 +1,12 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-import os
-
-basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///hammers.db"
+# secret key
+app.config["SECRET KEY"] = "tarang"
+
+# initialize database
 db = SQLAlchemy(app)
 
-
-app.config.from_object(__name__)
-from app import routes
+from .routes import *  # Import routes from routes.py
