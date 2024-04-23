@@ -1,6 +1,6 @@
 from flask import request, jsonify, render_template
 from . import app, db
-from .models import Hammer, Buyback
+from .models import Hammer, TransactionLog
 
 
 # default endpoint
@@ -9,10 +9,33 @@ def home():
     return render_template("index.html")  # Assuming you have an index.html template
 
 
+# function to populate dummy data
+def populate_dummy_data():
+    dummy_hammers = [
+        {"type": "Dummy Hammer 1", "price": 10.0, "quantity": 20},
+        {"type": "Dummy Hammer 2", "price": 15.0, "quantity": 15},
+        {"type": "Dummy Hammer 3", "price": 20.0, "quantity": 25},
+    ]
+
+    for data in dummy_hammers:
+        hammer = Hammer(
+            type=data["type"], price=data["price"], quantity=data["quantity"]
+        )
+        db.session.add(hammer)
+
+    db.session.commit()
+
+
+@app.route("/populate_dummy_data", methods=["POST"])
+def populate_dummy_data_route():
+    populate_dummy_data()
+    return jsonify({"message": "Dummy data populated successfully"}), 200
+
+
 @app.route("/hammers", methods=["POST"])
 def add_hammer():
     data = request.get_json()
-    hammer = Hammer(type=data["type"], price=data["price"])
+    hammer = Hammer(type=data["type"], price=data["price"], quantity=data["quantity"])
     db.session.add(hammer)
     db.session.commit()
     return jsonify(hammer_id=hammer.id), 201
@@ -21,31 +44,52 @@ def add_hammer():
 @app.route("/hammers/<int:id>/sell", methods=["POST"])
 def sell_hammer(id):
     hammer = Hammer.query.get_or_404(id)
-    hammer.sold = 1  # mark the hammer as sold
 
-    # Check if there's an existing buyback entry for this hammer
-    buyback_entry = Buyback.query.filter_by(hammer_id=id).first()
-    if buyback_entry:
-        # If an entry exists, delete it from the database
-        db.session.delete(buyback_entry)
+    if hammer.quantity > 0:
+        hammer.quantity -= 1
+        hammer.sold += 1  # Increment the sold count
+        hammer.buyback_price = 0.0
 
-    db.session.commit()  # Commit changes to the database
-    return jsonify({"success": True}), 200
+        db.session.commit()
+
+        # Log the transaction
+        transaction_log = TransactionLog(
+            amount=hammer.price,
+            name=hammer.type,
+            transaction_type="sell",
+            hammer_id=hammer.id,
+        )
+        db.session.add(transaction_log)
+        db.session.commit()
+
+        # Return the updated hammer object along with success message
+        return jsonify({"success": True, "hammer": hammer.serialize()}), 200
+    else:
+        return jsonify({"error": "Hammer quantity is zero, cannot be sold"}), 400
 
 
-# This methods will buyback the hammer at 0.75x the initial cost
 @app.route("/hammers/<int:id>/buy", methods=["POST"])
 def buy_it_back(id):
     hammer = Hammer.query.get_or_404(id)
-    if hammer.sold:
+    if hammer.sold > 0:
+        hammer.sold -= 1  # Mark as not sold
+        hammer.quantity += 1
         buyback_price = 0.75 * hammer.price
-        hammer.sold = 0  # Mark as not sold
+        hammer.buyback_price = buyback_price
 
-        # record buy buy back transactions
-        buyback = Buyback(hammer_id=hammer.id, buyback_price=buyback_price)
-        db.session.add(buyback)
         db.session.commit()
-        return jsonify({"success": True, "buyback_price": buyback_price}), 200
+
+        # Log the transaction
+        transaction_log = TransactionLog(
+            amount=hammer.buyback_price,
+            name=hammer.type,
+            transaction_type="buy",
+            hammer_id=hammer.id,
+        )
+        db.session.add(transaction_log)
+        db.session.commit()
+
+        return jsonify({"success": True, "hammer": hammer.serialize()}), 200
     else:
         return jsonify({"error": "Hammer not sold, cannot buy back"}), 400
 
@@ -60,26 +104,11 @@ def list_hammers():
             "type": hammer.type,
             "price": hammer.price,
             "sold": hammer.sold,
+            "quantity": hammer.quantity,
         }
         for hammer in hammers
     ]
     return jsonify(hammers=hammer_list)
-
-
-# this will list all tha buybacks from the database
-@app.route("/buybacks", methods=["GET"])
-def list_buybacks():
-    buybacks = Buyback.query.all()
-    buyback_list = [
-        {
-            "id": buyback.id,
-            "hammer_id": buyback.hammer_id,
-            "buyback_price": buyback.buyback_price,
-            "timestamp": buyback.timestamp,
-        }
-        for buyback in buybacks
-    ]
-    return jsonify(buybacks=buyback_list)
 
 
 @app.route("/hammers/<int:id>/delete", methods=["DELETE"])
@@ -88,15 +117,32 @@ def delete_hammer(id):
     hammer = Hammer.query.get_or_404(id)
 
     if hammer:
-        buyback_entry = Buyback.query.filter_by(hammer_id=id).first()
-        if buyback_entry:
-            db.session.delete(buyback_entry)
-
         db.session.delete(hammer)
         db.session.commit()
         return jsonify({"message": f"product with ID {id} deleted successfully"}), 200
     else:
         return jsonify({"message", f"Product with ID {id} was not deleted"}), 404
+
+
+@app.route("/transaction_log", methods=["GET"])
+def transaction_log():
+    # Retrieve all transaction log entries from the database
+    transaction_logs = TransactionLog.query.all()
+
+    # Serialize transaction log entries
+    transaction_log_data = [
+        {
+            "id": log.id,
+            "name": log.name,
+            "amount": log.amount,
+            "transaction_type": log.transaction_type,
+            "hammer_id": log.hammer_id,
+        }
+        for log in transaction_logs
+    ]
+
+    # Return the serialized transaction log data as JSON
+    return jsonify(transaction_log=transaction_log_data)
 
 
 @app.errorhandler(500)
