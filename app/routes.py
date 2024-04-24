@@ -6,7 +6,7 @@ from .models import Hammer, TransactionLog
 # default endpoint
 @app.route("/")
 def home():
-    return render_template("index.html")  # Assuming you have an index.html template
+    return render_template("index.html")
 
 
 # function to populate dummy data
