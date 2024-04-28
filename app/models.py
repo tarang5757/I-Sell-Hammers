@@ -4,7 +4,7 @@ from app import db
 class Hammer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String(120), nullable=False)
-    quantity = db.Column(db.Integer)
+    quantity = db.Column(db.Integer, default=1)
     price = db.Column(db.Float, nullable=False)
     sold = db.Column(db.Integer, default=0)
     buyback_price = db.Column(db.Float, default=0.0)

@@ -9,4 +9,5 @@ app.config["SECRET KEY"] = "tarang"
 # initialize database
 db = SQLAlchemy(app)
 
+
 from .routes import *  # Import routes from routes.py
