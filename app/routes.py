@@ -6,7 +6,7 @@ from .models import Hammer, TransactionLog
 # default endpoint
 @app.route("/")
 def home():
-    return render_template("index.html")  # Assuming you have an index.html template
+    return render_template("index.html")
 
 
 # function to populate dummy data
@@ -126,10 +126,10 @@ def delete_hammer(id):
 
 @app.route("/transaction_log", methods=["GET"])
 def transaction_log():
-    # Retrieve all transaction log entries from the database
+    # Query to retrieve all transaction log entries from the database
     transaction_logs = TransactionLog.query.all()
 
-    # Serialize transaction log entries
+    # Object to send to client side
     transaction_log_data = [
         {
             "id": log.id,
@@ -141,7 +141,7 @@ def transaction_log():
         for log in transaction_logs
     ]
 
-    # Return the serialized transaction log data as JSON
+    # Return it
     return jsonify(transaction_log=transaction_log_data)
 
 
